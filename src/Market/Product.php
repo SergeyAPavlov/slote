@@ -2,6 +2,8 @@
 
 namespace Market;
 
+use Exception;
+
 /**
  * Represents a single product record stored in DB.
  */
@@ -10,34 +12,38 @@ class Product
     /*...*/
 
     /**
-     * @var FileStorageRepository
+     * @var ImageGallery
      */
-    private FileStorageRepository $storage;
+    private ImageGallery $gallery;
     /**
      * @var string
      */
-    private string $imageFileName;
+    private string $imageFileUri;
 
-    /**
-     * @param FileStorageRepository $fileStorageRepository
-     */
-    public function __construct(FileStorageRepository $fileStorageRepository)
-    {
-        $this->storage = $fileStorageRepository;
-    }
+
     /*...*/
+    /**
+     * Product constructor.
+     * @param ImageGallery $storage
+     */
+    public function __construct(ImageGallery $storage)
+    {
+        $this->gallery = $storage;
+    }
+
     /**
      * Returns product image URL.
      *
      * @return string|null
+     * @throws Exception
      */
     public function getImageUrl(): ?string
     {
-        if ($this->storage->fileExists($this->imageFileName) !== true) {
-            return null;
+        if ($this->gallery->fileExists($this->imageFileUri) !== true) {
+            return $this->gallery->getTopFileUri();
         }
 
-        return $this->storage->getUrl($this->imageFileName);
+        return $this->gallery->getUrl($this->imageFileUri);
     }
 
     /**
@@ -49,12 +55,17 @@ class Product
     {
         /*...*/
         try {
-
-            if ($this->storage->fileExists($this->imageFileName) !== true) {
-                $this->storage->deleteFile($this->imageFileName);
+            if ($this->gallery->fileExists($this->imageFileUri) !== true) {
+                $this->gallery->deleteFile($this->imageFileUri);
             }
-            $this->storage->saveFile($this->imageFileName);
-        } catch (\Exception $exception) {
+
+            $save = $this->gallery->saveFile($this->imageFileUri);
+
+            if ($save) {
+                $this->imageFileUri = $save;
+            }
+
+        } catch (Exception $exception) {
             /*...*/
             return false;
         }
@@ -62,6 +73,11 @@ class Product
         /*...*/
 
         return true;
+    }
+
+    public function listImages(): array
+    {
+        return $this->gallery->listImages();
     }
     /*...*/
 }
